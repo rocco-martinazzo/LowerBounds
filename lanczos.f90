@@ -77,7 +77,6 @@ subroutine lanczos( H, nlmax, psi, lz, alpha, beta, iunit, n )
          if(info == 0)then
             write(*,*) ' Stp =', k , ' E(i) = ', (eigen(i), i=1,6)
             write(iunit,*) k + n-1, (eigen(i),i=1,6)
-            !write(iunit-1,*) k + n-1, ulanc(2,1)/ulanc(1,1)
          elseif(info < 0 ) then
             write(*,*) ' *** Error in dsyev !! **** '
             write(*,*) ' '

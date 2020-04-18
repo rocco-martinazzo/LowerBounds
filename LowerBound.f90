@@ -3,9 +3,20 @@ Program lowerb
 
   implicit none
 
-  ! this program reads the matrix elements of a Lanczos matrix of dimensions nl as produced by HPhi
+  !
+  ! this program reads the matrix elements of a Lanczos matrix of dimensions nl
+  ! as produced, for instance, by HPhi
+  ! ( Kawamura M, et al. (2017) "Quantum lattice model solver HΦ".
+  !   Computer Physics Communications 217:180–192 )
   ! and diagonalize each upperleft subblock of dimension 1,2,..nl
-  ! Please refer to the "Notes for Eli", and section 8 in particular for the theory
+  !
+  ! Please refer to the papers
+  !
+  ! Pollak E (2019) "An improved lower bound to the ground-state energy", Journal of Chemical Theory and Computation15(3):1498–1502 
+  ! Pollak E (2019) "A tight lower bound to the ground-state energy", Journal of Chemical Theory and Computation15(7):4079–4087
+  ! Martinazzo R. and Pollak E. (2020) "Lower bounds to eigenvalues of the Schrödinger equation by solution of a ninety year challenge", submitted
+  !
+  ! for the theory
   
   integer(4), parameter :: maxd=150
   character(1) :: ans 
@@ -24,6 +35,7 @@ Program lowerb
   real(8), parameter :: sth = 1.d-16               ! parameter controlling the self-consistent cycle
 
   ! scratch & temporary variables and arrays
+
   integer(4) :: i, j, k, n, lwork, liwork, info, io, lz, worki, lunit
   real(8) :: workl, csi, am, eref, erefx, small, ebarold
   real(8) :: an, bn, cn, anold, bnold, cnold, ban, can, banold, canold, eba, etmp
@@ -44,6 +56,7 @@ Program lowerb
   integer(4), allocatable :: iwork(:)
   
   ! this is for high precision arithmetics (MUST be the same precision as in bounds)
+  
   real(8) :: zero, one, two
   integer(4), parameter :: fmprec=64
   TYPE(FM) :: zeroMP, oneMP, twoMP
@@ -74,11 +87,18 @@ Program lowerb
   ! set flag for testing
   test = .false. 
 
-  write(*,*)' *********************************** '
-  write(*,*)' *                                 * '
-  write(*,*)' *   LLB (Lanczos Lower bounds)    * '
-  write(*,*)' *                                 * '
-  write(*,*)' *********************************** '
+  write(*,*) ' *********************************************'
+  write(*,*) ' *                                           *'
+  write(*,*) ' *       LLB (Lanczos Lower bounds)          *'
+  write(*,*) ' *                                           *'
+  write(*,*) ' *        A Fortran code to compute          *'
+  write(*,*) ' *        and test lower bounds of           *'
+  write(*,*) ' *           hermitean operators             *'
+  write(*,*) ' *   from their tridiagonal representation   *'
+  write(*,*) ' *                                           *'
+  write(*,*) ' * by R. Martinazzo                          *'
+  write(*,*) ' *                Revision date    Feb 2020  *'
+  write(*,*) ' *********************************************'
   
   open(file='alpha.dat',unit=11)
   write(*,*) ' Opening file alpha.dat for reading max dim '
@@ -108,12 +128,12 @@ Program lowerb
   open(file='errorsx.dat',unit=224)
   open(file='ratiosx.dat',unit=324)
   open(file='gap.dat',unit=424)
-  write(*,*) ' Opening file ebar.dat                for writing' 
+  write(*,*) ' Opening file ebar.dat                for writing'    ! this contains the residual energy
   write(*,*) ' Opening file upper.dat               for writing'    ! this contains the lowest eigenvalues 
   write(*,*) ' Opening file lower.dat               for writing'    ! this contains the computed lower bound to the ground-state energy 
   write(*,*) ' Opening file lower_weinstein.dat     for writing'    ! this contains the simple Weinstein bounds for the lowest eigenvalues
   write(*,*) ' Opening file errors.dat              for writing'    ! these are for the (better) upper bound given by the approximate eigenstate 
-  write(*,*) ' Opening file ratios.dat              for writing'
+  write(*,*) ' Opening file ratios.dat              for writing'    ! this contains the gain w.r.t. Temple's bound
   allocate(alpha0(nlmax))
   allocate(beta0(nlmax-1))
   allocate(epsu(nlmax))
@@ -132,12 +152,11 @@ Program lowerb
   allocate(rho2(nlmax))
   allocate(qb2(nlmax))
   allocate(epstight(nlmax,jscfmax))
-  !
-  ! if(test)allocate(usave(nlmax))
+
   allocate(usave(nlmax))                ! save ground- and first-excited state vectors
   allocate(usavex(nlmax))               ! in any case
   
-  ! notice that in the notes we introduce the Lanczos order L = n-1 and Lmax = nlmax - 1
+  ! notice that in the paper we introduce the Lanczos order L = n-1 and Lmax = nlmax - 1
   ! and consider alpha0(0),..alpha0(L) (differently from below)
   !              beta0(1),..beta0(L)   (same as below)
   
@@ -157,10 +176,10 @@ Program lowerb
   ! set dimensions of work arrays at its optimal for nl
 
   idiag = 2                                 ! idiag = 1, 2 for using dsyev or dsyevd throughout the code
-                                            !       There is probably no real difference between the two
-                                            !       Preliminary results showing some effects were probably
-                                            !       affected by an erroneous query call to dsyev
-                                            !       Set it to 2 for a safe use
+                                            !         There is probably no real difference between the two
+                                            !         Preliminary results showing some effects were probably
+                                            !         affected by an erroneous query call to dsyev
+                                            !         Set it to 2 for a safe use
   liwork = 1
   if(idiag.eq.1) then
      call dsyev('V', 'U', nlmax, ulanc, nlmax, lambda(1,1), workl, -1, info)
@@ -195,6 +214,7 @@ Program lowerb
   
   ! **************
   ! this is for testing purpose: perform diagonalization of the larger matrix available
+  
   ulanc = 0.0d0
   do i = 1, nlmax
      ulanc(i, i) = alpha0(i)
@@ -225,15 +245,17 @@ Program lowerb
   eref = lambda(1,nlmax)   ! this is the best estimate of the ground-state energy we have
   erefx = lambda(2,nlmax)  ! this is the best estimate of the first excited state energy we have
   
-  ! compute Q0 using high-precision arithmetics
+  ! compute Q0 using high-precision arithmetics: Q0 is the fundamental ratio (1-a0)/a0
+  ! where a0 is the weigth of the ground-state in the initial state
   
   call FMDP2M( ulanc(1,1), uMP) 
   qboundMP = (oneMP-uMP**2)/uMP**2                  ! this is the exact Q_0 in quadruple precision
   call FMM2DP(qboundMP,qex)                         ! this is the exact Q_0 in double precision
   
   ! this is the dp value of the exact Ebar1 (in the new notation this is "\bar(lambda)_0")
+  
   ebar1ex  = ( alpha0(1)-eref ) / ( 1.d0-ulanc(1,1)**2 ) + eref
-  write(*,*) ' Exact Energy, Ebar1, Q0 = ', eref, ebar1ex, qex
+  write(*,*) ' Exact Energy, Lambda_0 (bar), Q0 = ', eref, ebar1ex, qex
   write(*,*) ''
   write(*,*) ' ******************** ' 
   write(*,*) ''
@@ -262,7 +284,9 @@ Program lowerb
   endif
   
   write(*,*) ' We are almost ready to compute lower bound estimates..'
-  write(*,*) '   Selected newbound estimate (Y/N)?'
+  write(*,*) '   Select newbound estimate (Y/N)?'
+  write(*,*) '   N redirects to improved versions of the approximate bound of Pollak2019a,Pollak2019b'
+  write(*,*) '   Y redirects to the rigorous lower expression of Martinazzo&Pollak2020 '
   read(*,*) answer
   if (trim(answer)=="Y" )  newbound = .true.
   if(.not. newbound) then
@@ -270,8 +294,7 @@ Program lowerb
      write(*,*) '   Select Q-bound estimate' 
      write(*,*) '   Type <bare|improved> for bare or improved overlap  '
      read(*,*) answer
-     if (trim(answer)=="bare" )  qflag = .true.
-          
+     if (trim(answer)=="bare" )  qflag = .true.          
      ! if qfixed = .true.  uses energy-independent qbound  
      !           = .false. uses energy-dependent   qbound
      !     test  = .true. for using exact Q0 (enforces qfixed = .true. )
@@ -290,17 +313,23 @@ Program lowerb
      ni = nlmax
      write(*,*) '   Select Q-bound estimate' 
      write(*,*) '   Type <new|old> for new or old estimate  '
+     write(*,*) '     new redirects to an experimental newer version for residual energies '
+     write(*,*) '     old redirects to the version described in Martinazzo&Pollak2020 '
      read(*,*) answer
      if (trim(answer)=="new" )  qflag2 = .true.          ! we use qflag2 for the new qbound estimate that exploit Lanczos construct in e1bar estimate
-     ! if(newbound.and.test) usave(:) = ulanc(:,1)       ! when test=.true. save the exact ground-state vector
      if(newbound) usave(:)  = ulanc(:,1)                 ! save ground- and first-excited vectors 
      if(newbound) usavex(:) = ulanc(:,2)                 ! anyway when newbound=.true.
   endif
   write(*,*) '   Ask for self-consistency ' 
   write(*,*) '   Type <T|F> for self-consistent or bare estimate'
+  write(*,*) '         T applies the theory self-consistently '
+  write(*,*) '         F applies the theory one-shot, using a previously estimated  bound '
   read(*,*) scf
   write(*,*) '   Ask for tight self-consistency'                       ! this assumes that the Ritz error is the smallest 
   write(*,*) '   Type <T|F> for tight self-consistent estimate'
+  write(*,*) '         T assumes that the Ritz error is the smallest, and improve the lower bound on this basis '
+  write(*,*) '         F does not make any assumption '
+  write(*,*) '   '
   read(*,*) tscf
   if(tscf)then
      open(file='errors_tbound.dat',unit=26)
@@ -346,19 +375,18 @@ Program lowerb
   do i = 1, n
      variance(i, n) = abs( beta0(n)*ulanc(n,i) )**2
   enddo
-  write(*,*) ''
-  write(*,*) '                    StE(i) = ', ( abs( beta0(n)*ulanc(n,i) ), i = 1,min(6,n) )
   write(*,*) ' ResL = ', n-1, ' E(i) = ', (lambdarest(i), i = 1,min(6,nlmax-n))
-  write(*,*) ' Lambda_0 (bar)        = ', ebar1
-  if(newbound) write(*,*) ' Lambda_0 (bar) exact     = ', ebar1ex  
-  write(*,*) ' E_lb (in)          = ', elower
-  write(*,*) ' E_lb (out)         = ', elowernew
+  write(*,*) '                    StE(i) = ', ( abs( beta0(n)*ulanc(n,i) ), i = 1,min(6,n) )
+  write(*,*) ' Lambda_0 (bar)            = ', ebar1
+  if(newbound) write(*,*) ' Lambda_0 (bar) exact      = ', ebar1ex  
+  write(*,*) ' E_lb (in)                 = ', elower
+  write(*,*) ' E_lb (out)                = ', elowernew
   if(scf)then
-     write(*,*) ' # of self-cycles   = ', icyc-1
+     write(*,*) ' # of self-cycles          = ', icyc-1
   endif
   if(tscf)then
-     write(*,*) ' # of tself-cycles  = ', jscf-1
-     write(*,*) ' E_lb (tight)       = ', epsl2(n)
+     write(*,*) ' # of tself-cycles         = ', jscf-1
+     write(*,*) ' E_lb (tight)              = ', epsl2(n)
   endif
   write(*,*) ' '
   write(16,*) n-1, ebar1
@@ -366,6 +394,7 @@ Program lowerb
   write(20,*) n-1, (lambda(i,n), i=1,6)
   write(21,*) n-1, elowernew
   write(22,*) n-1, (lambda(i,n)-abs(beta0(n)*ulanc(n,i)), i=1,6 )
+
   ! *****************
 
   do n = 2, min(nlmax,maxd)   ! n is the problem dimension, the Lanczos order L is given by L = n-1
@@ -429,8 +458,6 @@ Program lowerb
         call FMDP2M( beta0(n), betaMP)         
         sigma_L0MP(i) = abs(betaMP*uMP)
      enddo
-     ! when test = .true. compute exact Q_0 for the new bound estimate
-     ! if(newbound.and.test)then
      ! compute exact Q_0 and residual energies always when newbound=.true. 
      if(newbound) then
         ! this is for the first excited state
@@ -444,7 +471,6 @@ Program lowerb
         call FMM2DP( qboundMP, qbound)
         qbound = max(qbound,1.d-16)
         ebar2ex  = lambda(2,n) + (lambda(2,n)-erefx)/ qbound
-        ! write(*,*) 'Excited', qbound, v**2
         ! this is for the ground-state
         v = 0.0d0
         do i = 1, n
@@ -456,13 +482,12 @@ Program lowerb
         call FMM2DP( qboundMP, qbound)
         qbound = max(qbound,1.d-16)
         ebar1ex  = lambda(1,n) + (lambda(1,n)-eref)/ qbound
-        ! write(*,*) 'Ground', qbound, v**2
         write(119,*) n-1, ebar1ex, ebar2ex 
      endif
      if( n.lt. nlmax) then
         ! lower bound estimate for the first excited state: it can be larger than E1!
         ebar2 = lambda(2,n)-abs(beta0(n)*ulanc(n,2))
-        if(ebar2.lt.lambda(1,n)) then   !!! To be carefully checked for crossing  !!
+        if(ebar2.lt.lambda(1,n)) then                     ! To be carefully checked for crossing 
            if ( qflag ) then
               ebar1 = lambda(1,1) + eps
            else
@@ -491,10 +516,6 @@ Program lowerb
         if(newbound)then
            qtmp = .false.
            if(n.gt.15) qtmp = qflag2
-
-           ! !! test exact
-           ! ebar1 = ebar1ex
-           
            call bounds_new( n, lambda, nlmax, sigma_L0MP, beta0, ebar1, elower, elowernew, & 
                 qboundMP, test, qtmp, eref, fmprec, etemple(n) )
            icyc = icyc + 1
@@ -537,7 +558,6 @@ Program lowerb
               jcyc = jcyc + 1
               if( scf .and. (elowernew2-elower2.gt.sth) .and. jcyc.lt.icycmax ) goto 110
               elowernew2 = max(elower2, elowernew2)
-              !write(*,*) jscf, elowernew, elowernew2, lambda(1,n) 
               jscf = jscf + 1
               if( jscf.le.jscfmax ) then
                  epstight(n, jscf) = elowernew2
@@ -576,16 +596,16 @@ Program lowerb
         enddo
         write(*,*) '                    StE(i) = ', ( abs( beta0(n)*ulanc(n,i) ), i = 1,min(6,n) )
         write(*,*) ''
-        write(*,*) ' Lambda_0 (bar)     = ', ebar1
-        if(newbound) write(*,*) ' Lambda_0 (bar) exact = ', ebar1ex
-        write(*,*) ' E_lb (in)          = ', elower
-        write(*,*) ' E_lb (out)         = ', elowernew
+        write(*,*) ' Lambda_0 (bar)            = ', ebar1
+        if(newbound) write(*,*) ' Lambda_0 (bar) exact      = ', ebar1ex
+        write(*,*) ' E_lb (in)                 = ', elower
+        write(*,*) ' E_lb (out)                = ', elowernew
         if(scf) then
-           write(*,*) ' # of self-cycles   = ', icyc-1
+           write(*,*) ' # of self-cycles          = ', icyc-1
         endif
         if(tscf) then
-           write(*,*) ' # of tself-cycles  = ', jscf-1
-           write(*,*) ' E_lb (tight)       = ', epsl2(n)
+           write(*,*) ' # of tself-cycles         = ', jscf-1
+           write(*,*) ' E_lb (tight)              = ', epsl2(n)
         endif
         write(16,*) n-1, ebar1
         write(19,*) n-1, (lambdarest(i),i=1,6)
@@ -609,42 +629,32 @@ Program lowerb
            den = variance(2, n-1)/variance(1,n-1)*(lambda(1,n-1)-elsave0)**2/(lambda(2,n-1)-lambda(1,n-1))**2 * &
                 (lambda(3, n-1) - elsave0)
            dl = max( lambda(2,n-1)-lambda(2,n), 1.0d-15)
-           ! test
-           ! dl = max( lambda(2,n-1)-erefx, 1.0d-15)
            den  =  1.d0 + den / dl             
            lbar1 = wb1 + ( wb2 - lambda(2,n-1) ) / den
-           ! write(*,*) ' ********** 1', den
            lbar1 = max(lbar1, lambda(2,n-1))
-           
            write(116,*) n-2, lbar1
            ! we are now ready to compute the bound..!
 100        continue
            if(elowernewx.gt.elowerx) elowerx = elowernewx
            if(elowerx.gt.lambda(2,n)) elowerx = lambda(2,n) -abs(beta0(n)*ulanc(n,2))
            ! compute bound with high precision (see precision set in routine bounds)
-           ! !! test exact !!
-           ! lbar1 = ebar2save
-           
            call bounds_newex( n-1, lambda, nlmax, variance, lbar1, elowerx, elowernewx, fmprec, etemplex(n-1) )
            icycx = icycx + 1
            if( scf .and. (elowernewx-elowerx.gt.sth) .and. icycx.lt.icycmax ) goto 100
            epslx(n-1) = elowernewx
-           write(*,*) ' --- First excited state L =  ', n-2
-           write(*,*) ' Lambda_1 (bar)     = ', lbar1
-           write(*,*) ' E_lb (in)          = ', elowerx
-           write(*,*) ' E_lb (out)         = ', elowernewx
+           write(*,*) ' '
+           write(*,*) ' *** First excited state L =  ', n-2
+           write(*,*) ' Lambda_1 (bar)            = ', lbar1
+           write(*,*) ' E_lb (in)                 = ', elowerx
+           write(*,*) ' E_lb (out)                = ', elowernewx
            if(scf) then
-              write(*,*) ' # of self-cycles   = ', icycx-1
+              write(*,*) ' # of self-cycles          = ', icycx-1
            endif
-           ! wb1 = elowernewx
         endif
         ! save best ground-state lower bound to compute the first excited-state lower bound
         ! at the next step. For the first and second excited state we use Wienstein bounds to start with
         if(newbound.and.n.ge.3) elsave0 = elowernew
-
-        !!! test
         if(newbound.and.n.ge.3) ebar2save = ebar2ex
-        
         write(*,*) ' '
      endif
   enddo
@@ -670,6 +680,7 @@ Program lowerb
   close(21)
   close(22)
   close(24)
+  close(124)
   if(tscf)then
      do n = 2, nlmax -1
         write(26,*) n-1, eref-epsl2(n), lambda(1,n)-eref, 0.5d0*( lambda(1,n)+epsl2(n) )-eref  ! errors-TBOUND.dat
@@ -695,12 +706,13 @@ Program lowerb
 
 
   ! restart Lanczos iteration from a given intermediate eigenstate
-
   ! set TEST flag
   test = .false.
 
   write(*,*) ''
   write(*,*) ''
+  write(*,*) ' Restart Lanczos using the L-th ground-state as initial state '
+  write(*,*) ' (for testing purposes, excited states not yet availble)      '
   write(*,*) ' Target step (L value)? [A negative value stops the code]' 
   read(*,*) n
   if( n.le.0 ) stop
@@ -717,6 +729,7 @@ Program lowerb
   open(file='lower-phi0.dat',unit=21)
   open(file='lower_weinstein-phi0.dat',unit=22)
   open(file='errors-phi0.dat',unit=24)
+  open(file='ratios-phi0.dat',unit=124)
   if(.not.newbound) then
      open(file='errors_Lanczos-phi0.dat',unit=23)
      open(file='qbounds-phi0.dat',unit=25)
@@ -835,7 +848,7 @@ Program lowerb
 
   ! this is the dp value of the exact Ebar1
   ebar1ex  = ( alphanew(1)-eref ) / ( 1.d0-ulanc(1,1)**2 ) + eref
-  write(*,*) ' Exact Energy, Ebar1, Q0 = ', eref, ebar1ex, qex
+  write(*,*) ' Exact Energy, Lambda_0 (bar), Q0 = ', eref, ebar1ex, qex
   write(*,*) ''
   write(*,*) ' ******************** ' 
   write(*,*) ''
@@ -872,7 +885,6 @@ Program lowerb
      write(*,*) '   Type <bare|improved> for bare or improved overlap  '
      read(*,*) answer
      if (trim(answer)=="bare" )  qflag = .true.
-     
      ! if qfixed = .true.  uses energy-independent qbound  
      !           = .false. uses energy-dependent   qbound
      !     test  = .true. for using exact Q0 (enforces qfixed = .true. )
@@ -920,7 +932,7 @@ Program lowerb
      write(*,*) '   Is that OK (Y/N)? '
      read(*,*) ans
      if ( ans == 'N' ) then
-        write(*,*) '   Input E1bar..'
+        write(*,*) '   Input Lambda_0 (bar) ..'
         read(*,*) ebar1
      else
         ebar1 = ebar(n)
@@ -1067,7 +1079,6 @@ Program lowerb
         ! take best Weinstein lower bound estimate for the first excited state  
            if( ebar2.gt.lambda(1,k) ) ebar1 = max(ebar2, ebar1)
         endif
-
 11      continue
         if(elowernew.gt.elower) elower = elowernew
         if(elower.gt.lambda(1,k)) elower = lambda(1,k) -abs(betanew(k)*ulanc(k,1))
@@ -1077,7 +1088,7 @@ Program lowerb
            qtmp = .false.
            if(k.gt.5) qtmp = qflag2
            call bounds_new( k, lambda, nlmax, sigma_L0MP, betanew, ebar1, elower, elowernew, & 
-                qboundMP, test, qtmp, eref, fmprec )
+                qboundMP, test, qtmp, eref, fmprec, etemple(k) )
            icyc = icyc + 1
            if( scf .and. (elowernew-elower.gt.sth) .and. icyc.lt.icycmax ) goto 11
         else
@@ -1101,10 +1112,10 @@ Program lowerb
         endif
 
         elower2 = elowernew
-
+        
         if(tscf)then
            if(newbound) then
-               ! call tbounds_new
+               ! not yet implemented
            else
               if ( .not.qflag ) then           
 21               call tbounds( k, lambda, nlmax, sigma_L0MP, betanew, ebar1, elower2, elowernew2, euppernew2, & 
@@ -1129,16 +1140,16 @@ Program lowerb
         endif
         
         write(*,*) '                    StE(i) = ', ( abs( betanew(k)*ulanc(k,i) ), i = 1,min(6,k) )   
-        write(*,*) ' E1 (bar)           = ', ebar1
-        if(newbound.and.test)write(*,*) ' E1 (bar) exact     = ', ebar1ex
-        write(*,*) ' E_lb (in)          = ', elower
-        write(*,*) ' E_lb (out)         = ', elowernew
+        write(*,*) ' Lambda_0 (bar)            = ', ebar1
+        if(newbound.and.test)write(*,*)' Lambda_0 (bar) exact      = ', ebar1ex
+        write(*,*) ' E_lb (in)                 = ', elower
+        write(*,*) ' E_lb (out)                = ', elowernew
         if(scf)then
-           write(*,*) ' # of self-cycles   = ', icyc-1
+           write(*,*)' # of self-cycles          = ', icyc-1
         endif
         if(tscf)then
-           write(*,*) ' # of tself-cycles  = ', jscf-1
-           write(*,*) ' E_lb (tight)       = ', epsl2(k)
+           write(*,*) ' # of tself-cycles        = ', jscf-1
+           write(*,*) ' E_lb (tight)             = ', epsl2(k)
         endif
         write(*,*) ' '
 
@@ -1158,6 +1169,8 @@ Program lowerb
 
   do k = 2, lz-1
      write(24,*) k-1, eref-epsl(k), lambda(1,k)-eref, 0.5d0*( lambda(1,k)+epsl(k) )-eref    ! errors.dat
+     write(124,*) lambda(1,k)-eref, abs(eref-epsl(k))/ max(abs((lambda(1,k)-eref)),sth*1.d-1),  & ! ratios.dat
+                                    abs(eref-etemple(k))/ max(abs((lambda(1,k)-eref)),sth*1.d-1)
   enddo
   close(16)
   close(19)
@@ -1165,6 +1178,7 @@ Program lowerb
   close(21)
   close(22)
   close(24)
+  close(124)
   if(tscf)then
      do k = 2, lz-1
         write(26,*) k-1, eref-epsl2(k), lambda(1,k)-eref, 0.5d0*( lambda(1,k)+epsl2(k) )-eref  ! errors-TBOUND.dat

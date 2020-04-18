@@ -1,0 +1,5 @@
+Test calculation using the Lanczos representation of the
+Hamiltonian of a Hubbard square lattice at half-filling with 4x4 sites
+
+Note: errors are normal in the first iterates as long as 
+      the Ritz eigenvalues and the associated Weinstein are unreliable

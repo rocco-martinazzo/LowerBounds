@@ -1,0 +1,5 @@
+Test calculation using the Lanczos representation of the
+Hamiltonian of a Heisenber square lattice with 5x6 spin-1/2
+
+Note: errors are normal in the first iterates as long as 
+      the Ritz eigenvalues and the associated Weinstein are unreliable

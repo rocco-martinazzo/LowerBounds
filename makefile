@@ -25,4 +25,4 @@ clean:
 	/bin/rm -f  *.o *.bak core *.mod *~ *.pdf *.ps
 
 realclean:
-	/bin/rm -f  *.o *.bak core *.mod *~ *.pdf *.ps $(HOME)/bin/lower*
+	/bin/rm -f  *.o *.bak core *.mod *~ *.pdf *.ps $(HOME)/bin/lower

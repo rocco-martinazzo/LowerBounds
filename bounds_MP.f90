@@ -292,7 +292,6 @@ subroutine qbounds( kL, lambda, nl, sigma_L0MP, beta, ebar1, elower, elowernew, 
   implicit none
   
   ! This subroutine computes IMPROVED lower bounds using arbirtary precision arithmetic
-  ! Please refer to the "Notes for Eli", and section 8 in particular
   ! On entry
   !        nl        is the largest size of the Lanczos matrices (for dimensioning only)
   !        kL        is the "reference" Lanczos dimension (i.e. it is 'L+1')
@@ -421,8 +420,7 @@ subroutine bounds_new( kL, lambda, nl, sigma_L0MP, beta, ebar1, elower, elowerne
   use fmzm
   implicit none
   
-  ! This subroutine computes the NEW lower bounds using arbirtary precision arithmetic
-  ! Please refer to the "Report for Eli", and section 5 & 11 in particular
+  ! This subroutine computes the NEW lower bounds using arbirtary precision arithmetics
   ! On entry
   !        nl        is the largest size of the Lanczos matrices (for dimensioning only)
   !        kL        is the "reference" Lanczos dimension (i.e. it is 'L+1')
@@ -495,10 +493,6 @@ subroutine bounds_new( kL, lambda, nl, sigma_L0MP, beta, ebar1, elower, elowerne
      rhoMP = bnMP / anMP                     ! test Eq. 22
      call FMSQRT_R1(rhoMP)
      elowerMP = lamrefMP - rhoMP  
-     ! let's do things differently            
-     !call FMDP2M( eref, e0MP)
-     !bnMP = sigma_L0MP(1)**2*qboundMP/(lamrefMP - e0MP)     
-     !elowerMP = lamrefMP - bnMP/anMP       ! test Eq. 23
      ! here for Temple's bound
      rhoMP = bnMP
      call FMSQRT_R1(rhoMP)
@@ -516,13 +510,7 @@ subroutine bounds_new( kL, lambda, nl, sigma_L0MP, beta, ebar1, elower, elowerne
         eg1MP = egMP                ! this is the most reasonable assumption                 
         if(rhoMP.lt.(aLMP-oneMP)/aLMP*egMP)write(*,*)' TEST!!'
         if(eg1MP.gt.rhoMP)then
-           qboundMP = ( (aLMP-oneMP)*(eg1MP-egMP)+ rhoMP )/(eg1MP-rhoMP )
-        !   uncomment here to  print out info about new Q  !!
-        !   call FMM2DP(qboundMP, qbound)
-        !   call FMM2DP(egMP, eg)
-        !   call FMM2DP(rhoMP, rho)
-        !   call FMM2DP(anMP, an)
-        !   write(*,*) ' >>>>>> Qbound <<<<<<', qbound, eg, rho, (an-1.d0)/an*eg           
+           qboundMP = ( (aLMP-oneMP)*(eg1MP-egMP)+ rhoMP )/(eg1MP-rhoMP )        
            bnMP = sigma_L0MP(1)**2*qboundMP 
            rhoMP = bnMP / anMP
            call FMSQRT_R1(rhoMP)
@@ -549,7 +537,6 @@ subroutine bounds_newex( kL, lambda, nl, variance, lbar1, elower, elowernew, fmp
   implicit none
   
   ! This subroutine computes the NEW lower bound for the first excited state using arbirtary precision arithmetic
-  ! Please refer to the "Report for Eli", and section 5 & 11 in particular
   ! On entry
   !        nl        is the largest size of the Lanczos matrices (for dimensioning only)
   !        kL        is the "reference" Lanczos dimension (i.e. it is 'L+1')
