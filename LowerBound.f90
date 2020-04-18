@@ -616,45 +616,6 @@ Program lowerb
            ! write(*,*) ' ********** 1', den
            lbar1 = max(lbar1, lambda(2,n-1))
            
-           ! test "improved expression" M = 2
-           ! den = variance(2, n-1)/variance(1,n-1)*(lambda(1,n-1)-elsave0)**2/(lambda(2,n-1)-lambda(1,n-1))**2 * &
-           !     (lambda(3, n-1) - elsave0)
-           ! den = den + &
-           !     variance(2, n-1)/variance(3,n-1) * (lambda(3,n-1)-wb2)**2/(lambda(2,n-1)-wb2)**2 * &
-           !     (lambda(3, n-1) - wb2)
-           ! dl = max( lambda(2,n-1)-lambda(2,n), 1.0d-15)
-           ! den = 1.0d0 + den / dl
-           ! lbar1 = wb1 + ( lambda(3,n-1) - lambda(2,n-1) ) / den
-           ! write(*,*) ' ********** 2', den
-           ! lbar1 = max(lbar1, lambda(2,n-1))
-           !
-           ! test "improved expression" M = 3
-           ! den = variance(2, n-1)/variance(1,n-1)*(lambda(1,n-1)-elsave0)**2/(lambda(2,n-1)-lambda(1,n-1))**2 * &
-           !     (lambda(4, n-1) - elsave0)
-           ! den = den + &
-           !     variance(2, n-1)/variance(3,n-1) * (lambda(3,n-1)-wb2)**2/(lambda(2,n-1)-wb2)**2 * &
-           !     (lambda(4, n-1) - wb2)
-           ! den = den + &
-           !     variance(2, n-1)/variance(4,n-1) * (lambda(4,n-1)-wb3)**2/(lambda(2,n-1)-wb3)**2 * &
-           !     (lambda(4, n-1) - wb3)
-           ! dl = max( lambda(2,n-1)-lambda(2,n), 1.0d-15)
-           ! den = 1.0d0 + den / dl
-           ! lbar1 = wb1 + ( lambda(4,n-1) - lambda(2,n-1) ) / den
-           ! write(*,*) ' ********** 3', den
-           ! lbar1 = max(lbar1, lambda(2,n-1))
-           !
-           ! test "standard" M = 3
-           ! den = variance(2, n-1)/variance(1,n-1)*(lambda(1,n-1)-elsave0)**2/(lambda(2,n-1)-lambda(1,n-1))**2 * &
-           !     (lambda(4, n-1) - elsave0)
-           ! den = den + &
-           !     variance(2, n-1)/variance(3,n-1) * (lambda(3,n-1)-wb2)**2/(lambda(2,n-1)-wb2)**2 * &
-           !     (lambda(4, n-1) - wb2)
-           ! dl = max( lambda(2,n-1)-lambda(2,n), 1.0d-15)
-           ! den = 1.0d0 + den / dl
-           ! lbar1 = wb1 + ( wb3 - lambda(2,n-1) ) / den
-           ! write(*,*) ' ********** 4', den
-           ! lbar1 = max(lbar1, lambda(2,n-1))
-           
            write(116,*) n-2, lbar1
            ! we are now ready to compute the bound..!
 100        continue
