@@ -10,17 +10,19 @@ The largest dimensional calculation provides reference values to compute the err
 of both the upper and lower bound estimates. Please ignore these information if you know that 
 the Lanczos calculation is not yet converged.
 
-Requirements 
+# Requirements 
 
 Linux/MacOS operating system
+
 gfortran    compiler
+
 LAPACK/BLAS linear package libraries
 
-Compile
+# Compiling
 
 "make lower" creates the exec file in your $HOME/bin directory.
 
-Usage
+# Usage
 
 Type "lower" and answer the questions to specify the precise lower bound estimate you'd like to have/test.
 The latter include some improved versions of the approximate bounds described in 
@@ -32,3 +34,7 @@ Pollak E (2019) "A tight lower bound to the ground-state energy", Journal of Che
 and the rigorous theory described in
 
 Martinazzo R. and Pollak E. (2020) "Lower bounds to eigenvalues of the Schrödinger equation by solution of a ninety year challenge", submitted
+
+# Test
+
+Sample input and data are available under the directory "tests" for some Heisenberg and Hubbard models.
