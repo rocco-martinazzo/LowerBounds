@@ -18,7 +18,7 @@ gfortran    compiler
 
 LAPACK/BLAS linear package libraries
 
-# Compiling
+# Compilation
 
 "make lower" creates the exec file in your $HOME/bin directory.
 
